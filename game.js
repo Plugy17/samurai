@@ -14,7 +14,7 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// РЕСУРСЫ — Добавил './' для GitHub Pages
+// Ресурсы — добавил './', чтобы GitHub точно нашел папку assets
 const assets = {
     bg: new Image(),
     attack: new Image(),
@@ -24,10 +24,7 @@ assets.bg.src = './assets/bg_main.jpg';
 assets.attack.src = './assets/samurai_attack.png';
 assets.spirit.src = './assets/spirit_blue.png';
 
-const HORIZON_Y = canvas.height * 0.45; 
-const SPAWN_X = canvas.width / 2;
-
-// АНИМАЦИЯ (Твоя сетка 2x4)
+// Анимация атаки (твоя сетка 2x4)
 const attackAnim = {
     totalFrames: 8,
     cols: 2,
@@ -36,13 +33,7 @@ const attackAnim = {
     isPlaying: false,
     timer: 0,
     frameDuration: 60,
-
-    play: function() {
-        this.currentFrame = 0;
-        this.timer = 0;
-        this.isPlaying = true;
-    },
-
+    play: function() { this.currentFrame = 0; this.timer = 0; this.isPlaying = true; },
     update: function(dt) {
         if (!this.isPlaying) return;
         this.timer += dt;
@@ -52,19 +43,19 @@ const attackAnim = {
             if (this.currentFrame >= this.totalFrames) this.isPlaying = false;
         }
     },
-
     draw: function(ctx, x, y, w, h) {
-        // БЕЗОПАСНАЯ ПРОВЕРКА: если картинка не загружена, рисуем квадрат
-        if (!assets.attack.complete || assets.attack.naturalWidth === 0) {
-            ctx.fillStyle = "purple";
-            ctx.fillRect(x - w/2, y - h/2, w, h);
-            return;
+        // КРИТИЧНО: Рисуем только если картинка загружена успешно
+        if (assets.attack.complete && assets.attack.naturalWidth !== 0) {
+            const sw = assets.attack.width / this.cols;
+            const sh = assets.attack.height / this.rows;
+            const col = this.currentFrame % this.cols;
+            const row = Math.floor(this.currentFrame / this.cols);
+            ctx.drawImage(assets.attack, col * sw, row * sh, sw, sh, x - w/2, y - h/2, w, h);
+        } else {
+            // Если самурай не загрузился, рисуем временный маркер
+            ctx.fillStyle = "rgba(255, 0, 255, 0.5)";
+            ctx.fillRect(x - 25, y - 25, 50, 50);
         }
-        const sw = assets.attack.width / this.cols;
-        const sh = assets.attack.height / this.rows;
-        const col = this.currentFrame % this.cols;
-        const row = Math.floor(this.currentFrame / this.cols);
-        ctx.drawImage(assets.attack, col * sw, row * sh, sw, sh, x - w/2, y - h/2, w, h);
     }
 };
 
@@ -76,16 +67,16 @@ class Spirit {
     }
     update(dt) { this.progress += this.speed; }
     draw() {
-        const size = 30 + (this.progress * 120);
+        const size = 30 + (this.progress * 150);
         const targetX = (this.lane * (canvas.width / 2.5)) + (canvas.width / 5);
-        const x = SPAWN_X + (targetX - SPAWN_X) * this.progress;
-        const y = HORIZON_Y + (canvas.height - HORIZON_Y) * this.progress;
+        const x = (canvas.width/2) + (targetX - (canvas.width/2)) * this.progress;
+        const y = (canvas.height*0.45) + (canvas.height - (canvas.height*0.45)) * this.progress;
         
         if (assets.spirit.complete && assets.spirit.naturalWidth !== 0) {
             ctx.drawImage(assets.spirit, x - size/2, y - size/2, size, size);
         } else {
             ctx.fillStyle = "cyan";
-            ctx.beginPath(); ctx.arc(x, y, size/3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI*2); ctx.fill();
         }
     }
 }
@@ -96,8 +87,8 @@ window.handleInput = function(lane) {
     let hit = false;
     spirits.forEach((s, i) => {
         if (s.lane === lane && s.progress > 0.7 && s.progress < 0.95) {
-            spirits.splice(i, 1); hit = true;
-            score += 100 * (combo + 1); combo++;
+            spirits.splice(i, 1);
+            hit = true; score += 100 * (combo + 1); combo++;
         }
     });
     if (!hit) combo = 0;
@@ -113,19 +104,18 @@ function gameLoop(now) {
     const dt = now - lastTime || 0;
     lastTime = now;
     
-    // Очистка черным
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // ФОН (Отрисовка только при успехе)
     if (assets.bg.complete && assets.bg.naturalWidth !== 0) {
         ctx.drawImage(assets.bg, 0, 0, canvas.width, canvas.height);
     }
 
-    if (Math.random() < 0.015) spirits.push(new Spirit());
+    if (Math.random() < 0.02) spirits.push(new Spirit());
     
     spirits.forEach((s, i) => {
-        s.update(dt); s.draw();
+        s.update(dt);
+        s.draw();
         if (s.progress > 1) { spirits.splice(i, 1); combo = 0; updateUI(); }
     });
 
