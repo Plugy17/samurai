@@ -102,32 +102,39 @@ window.handleInput = function(lane) {
     updateUI();
 }
 
-function updateUI() {
-    document.getElementById('score').innerText = score;
-    document.getElementById('combo').innerText = 'x' + combo;
-}
-
 function gameLoop(now) {
     const dt = now - lastTime || 0;
     lastTime = now;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Сначала заливаем фон черным, чтобы не было белого экрана [cite: 1, 9]
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    if (assets.bg.complete) ctx.drawImage(assets.bg, 0, 0, canvas.width, canvas.height);
+    // [cite: 7] Рисуем фон, только если он реально загружен
+    if (assets.bg.complete && assets.bg.naturalWidth !== 0) {
+        ctx.drawImage(assets.bg, 0, 0, canvas.width, canvas.height);
+    }
 
     if (Math.random() < 0.02) spirits.push(new Spirit());
     
     spirits.forEach((s, i) => {
         s.update(dt);
         s.draw();
-        if (s.progress > 1) { spirits.splice(i, 1); combo = 0; updateUI(); }
+        if (s.progress > 1) { 
+            spirits.splice(i, 1); 
+            combo = 0; 
+            updateUI(); 
+        }
     });
 
     const playerX = (playerLane * (canvas.width / 2.5)) + (canvas.width / 5);
     const playerY = canvas.height * 0.85;
 
-    attackAnim.update(dt);
-    attackAnim.draw(ctx, playerX, playerY, 250, 250);
+    // [cite: 7] Безопасная отрисовка атаки
+    if (assets.attack.complete && assets.attack.naturalWidth !== 0) {
+        attackAnim.update(dt);
+        attackAnim.draw(ctx, playerX, playerY, 250, 250);
+    }
 
     requestAnimationFrame(gameLoop);
 }
-requestAnimationFrame(gameLoop);
