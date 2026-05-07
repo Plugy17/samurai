@@ -14,7 +14,7 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Ресурсы — добавил './', чтобы GitHub точно нашел папку assets
+// Загрузка ресурсов (убедись, что папка assets на месте)
 const assets = {
     bg: new Image(),
     attack: new Image(),
@@ -24,15 +24,44 @@ assets.bg.src = './assets/bg_main.jpg';
 assets.attack.src = './assets/samurai_attack.png';
 assets.spirit.src = './assets/spirit_blue.png';
 
-// Анимация атаки (твоя сетка 2x4)
+// УПРАВЛЕНИЕ: Делим экран на 3 зоны
+canvas.addEventListener('pointerdown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const clickPos = x / rect.width;
+
+    if (clickPos < 0.33) handleInput(0);      // Лево
+    else if (clickPos < 0.66) handleInput(1); // Центр
+    else handleInput(2);                     // Право
+});
+
+function handleInput(lane) {
+    playerLane = lane;
+    attackAnim.play();
+    
+    let hit = false;
+    spirits.forEach((s, i) => {
+        // Проверка попадания (0.7 - 0.95 это зона перед игроком)
+        if (s.lane === lane && s.progress > 0.7 && s.progress < 0.95) {
+            spirits.splice(i, 1);
+            hit = true;
+            score += 100 * (combo + 1);
+            combo++;
+        }
+    });
+    if (!hit) combo = 0;
+    updateUI();
+}
+
+function updateUI() {
+    document.getElementById('score').innerText = score;
+    document.getElementById('combo').innerText = 'x' + combo;
+}
+
+// Анимация самурая
 const attackAnim = {
-    totalFrames: 8,
-    cols: 2,
-    rows: 4,
-    currentFrame: 0,
-    isPlaying: false,
-    timer: 0,
-    frameDuration: 60,
+    totalFrames: 8, cols: 2, rows: 4,
+    currentFrame: 0, isPlaying: false, timer: 0, frameDuration: 60,
     play: function() { this.currentFrame = 0; this.timer = 0; this.isPlaying = true; },
     update: function(dt) {
         if (!this.isPlaying) return;
@@ -44,17 +73,12 @@ const attackAnim = {
         }
     },
     draw: function(ctx, x, y, w, h) {
-        // КРИТИЧНО: Рисуем только если картинка загружена успешно
         if (assets.attack.complete && assets.attack.naturalWidth !== 0) {
             const sw = assets.attack.width / this.cols;
             const sh = assets.attack.height / this.rows;
             const col = this.currentFrame % this.cols;
             const row = Math.floor(this.currentFrame / this.cols);
             ctx.drawImage(assets.attack, col * sw, row * sh, sw, sh, x - w/2, y - h/2, w, h);
-        } else {
-            // Если самурай не загрузился, рисуем временный маркер
-            ctx.fillStyle = "rgba(255, 0, 255, 0.5)";
-            ctx.fillRect(x - 25, y - 25, 50, 50);
         }
     }
 };
@@ -63,41 +87,20 @@ class Spirit {
     constructor() {
         this.lane = Math.floor(Math.random() * 3);
         this.progress = 0; 
-        this.speed = 0.005; 
+        this.speed = 0.005 + (score / 1000000); 
     }
     update(dt) { this.progress += this.speed; }
     draw() {
         const size = 30 + (this.progress * 150);
-        const targetX = (this.lane * (canvas.width / 2.5)) + (canvas.width / 5);
+        const laneWidth = canvas.width / 3;
+        const targetX = (this.lane * laneWidth) + (laneWidth / 2);
         const x = (canvas.width/2) + (targetX - (canvas.width/2)) * this.progress;
         const y = (canvas.height*0.45) + (canvas.height - (canvas.height*0.45)) * this.progress;
         
         if (assets.spirit.complete && assets.spirit.naturalWidth !== 0) {
             ctx.drawImage(assets.spirit, x - size/2, y - size/2, size, size);
-        } else {
-            ctx.fillStyle = "cyan";
-            ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI*2); ctx.fill();
         }
     }
-}
-
-window.handleInput = function(lane) {
-    playerLane = lane;
-    attackAnim.play();
-    let hit = false;
-    spirits.forEach((s, i) => {
-        if (s.lane === lane && s.progress > 0.7 && s.progress < 0.95) {
-            spirits.splice(i, 1);
-            hit = true; score += 100 * (combo + 1); combo++;
-        }
-    });
-    if (!hit) combo = 0;
-    updateUI();
-}
-
-function updateUI() {
-    document.getElementById('score').innerText = score;
-    document.getElementById('combo').innerText = 'x' + combo;
 }
 
 function gameLoop(now) {
@@ -119,7 +122,8 @@ function gameLoop(now) {
         if (s.progress > 1) { spirits.splice(i, 1); combo = 0; updateUI(); }
     });
 
-    const playerX = (playerLane * (canvas.width / 2.5)) + (canvas.width / 5);
+    const laneWidth = canvas.width / 3;
+    const playerX = (playerLane * laneWidth) + (laneWidth / 2);
     const playerY = canvas.height * 0.8;
 
     attackAnim.update(dt);
