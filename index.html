@@ -2,9 +2,10 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Spirit Runner</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 
@@ -19,27 +20,23 @@
         </div>
     </div>
 
-    <canvas id="gameCanvas"></canvas>
-
-    <div id="controls">
-        <div class="tap-zone" onpointerdown="handleInput(0)">
-            <span>◀</span><div class="tap-label">ЛЕВО</div>
-        </div>
-        <div class="tap-zone" onpointerdown="handleInput(1)">
-            <span>⚪</span><div class="tap-label">ЦЕНТР</div>
-        </div>
-        <div class="tap-zone" onpointerdown="handleInput(2)">
-            <span>▶</span><div class="tap-label">ПРАВО</div>
-        </div>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
     </div>
 
     <div id="menu">
-        <div class="menu-item">🛒<br>МАГАЗИН</div>
-        <div class="menu-item">🎒<br>ИНВЕНТАРЬ</div>
-        <div class="menu-item">📜<br>КВЕСТЫ</div>
-        <div class="menu-item">🏆<br>РЕЙТИНГ</div>
+        <div class="menu-item">🛒<br>SHOP</div>
+        <div class="menu-item">🎒<br>INV</div>
+        <div class="menu-item">📜<br>QUEST</div>
+        <div class="menu-item">🏆<br>RANK</div>
     </div>
 
+    <script>
+        // Инициализация Telegram
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Развернуть на весь экран телефона
+        tg.ready();
+    </script>
     <script src="game.js"></script>
 </body>
 </html>
